@@ -1,0 +1,6 @@
+node_modules/
+gifts.db
+gifts.db-journal
+.env
+*.log
+.DS_Store

@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lista de Presentes - EvaCloudd</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎁 Lista de Presentes EvaCloudd</h1>
+            <p class="subtitle">Organize e visualize sugestões de presentes</p>
+        </header>
+
+        <main>
+            <section class="form-section">
+                <h2>Adicionar Sugestão de Presente</h2>
+                <form id="giftForm">
+                    <div class="form-group">
+                        <label for="nome">Seu Nome *</label>
+                        <input type="text" id="nome" name="nome" required placeholder="Digite seu nome">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="presente">Nome do Presente *</label>
+                        <input type="text" id="presente" name="presente" required placeholder="Ex: Perfume, Livro, etc.">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="link">Link do Presente *</label>
+                        <input type="url" id="link" name="link" required placeholder="https://exemplo.com/produto">
+                    </div>
+
+                    <button type="submit" class="btn-submit">Adicionar Presente</button>
+                </form>
+            </section>
+
+            <section class="gifts-section">
+                <h2>Todas as Sugestões</h2>
+                <div id="loading" class="loading">Carregando sugestões...</div>
+                <div id="giftsList" class="gifts-list"></div>
+                <div id="emptyState" class="empty-state" style="display: none;">
+                    <p>Nenhuma sugestão de presente ainda. Seja o primeiro a adicionar!</p>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>Feito com 💝 para EvaCloudd</p>
+        </footer>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
