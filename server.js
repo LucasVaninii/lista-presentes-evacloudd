@@ -7,7 +7,7 @@ const PORT = process.env.PORT || 3000;
 
 // Configurar conexão com o banco Neon
 // A Vercel cria a variável DATABASE_URL automaticamente quando você conecta o projeto
-const sql = neon(process.env.DATABASE_URL);
+const sql = neon(process.env.DATABASE_URL || process.env.POSTGRES_URL);
 
 // Middleware
 app.use(cors({
