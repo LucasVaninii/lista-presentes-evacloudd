@@ -7,7 +7,6 @@ const API_URL = "https://lista-presentes-evacloudd.vercel.app/api";
 const STORAGE_KEY = 'evacloudd_gifts';
 
 // Detectar se estamos em produção (GitHub Pages) ou desenvolvimento
-const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
 const USE_LOCALSTORAGE_ONLY = !API_URL || isProduction;
 
 // Carregar presentes ao carregar a página
