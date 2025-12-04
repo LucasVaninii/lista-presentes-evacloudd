@@ -1,14 +1,17 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const path = require('path');
+const { neon } = require('@neondatabase/serverless');
 const cors = require('cors');
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware - CORS configurado para aceitar requisições de qualquer origem
+// Configurar conexão com o banco Neon
+// A Vercel cria a variável DATABASE_URL automaticamente quando você conecta o projeto
+const sql = neon(process.env.DATABASE_URL);
+
+// Middleware
 app.use(cors({
-    origin: '*', 
+    origin: '*',
     methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
@@ -16,144 +19,90 @@ app.use(express.json());
 app.use(express.static('.'));
 
 // ==================================================================
-// CORREÇÃO CRÍTICA PARA VERCEL:
-// A Vercel não permite criar arquivos na pasta raiz.
-// Precisamos usar a pasta temporária '/tmp' quando estivermos lá.
+// INICIALIZAÇÃO DO BANCO DE DADOS
 // ==================================================================
-const dbPath = process.env.VERCEL 
-    ? path.join('/tmp', 'gifts.db') 
-    : path.join(__dirname, 'gifts.db');
 
-// Inicializar banco de dados
-const db = new sqlite3.Database(dbPath, (err) => {
-    if (err) {
-        console.error('Erro ao conectar ao banco de dados:', err);
-    } else {
-        console.log(`Conectado ao banco de dados SQLite em: ${dbPath}`);
-        
-        // Criar tabela se não existir
-        db.run(`CREATE TABLE IF NOT EXISTS gifts (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            nome TEXT NOT NULL,
-            presente TEXT NOT NULL,
-            link TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`, (err) => {
-            if (err) {
-                console.error('Erro ao criar tabela:', err);
-            } else {
-                console.log('Tabela de presentes criada/verificada');
-            }
-        });
+async function initDB() {
+    try {
+        // Cria a tabela se não existir (Sintaxe PostgreSQL)
+        await sql`
+            CREATE TABLE IF NOT EXISTS gifts (
+                id SERIAL PRIMARY KEY,
+                nome TEXT NOT NULL,
+                presente TEXT NOT NULL,
+                link TEXT NOT NULL,
+                created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+            );
+        `;
+        console.log('Banco de dados Neon conectado e tabela verificada!');
+    } catch (error) {
+        console.error('Erro ao conectar no banco:', error);
+    }
+}
+
+// Inicializar a tabela ao arrancar o servidor
+initDB();
+
+// ==================================================================
+// ROTAS DA API
+// ==================================================================
+
+// Rota principal
+app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/index.html');
+});
+
+// Buscar todos os presentes
+app.get('/api/gifts', async (req, res) => {
+    try {
+        const rows = await sql`SELECT * FROM gifts ORDER BY created_at DESC`;
+        res.json(rows);
+    } catch (err) {
+        console.error('Erro ao buscar presentes:', err);
+        res.status(500).json({ error: 'Erro ao buscar presentes' });
     }
 });
 
-// Rota para servir o HTML
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Rota para obter todos os presentes
-app.get('/api/gifts', (req, res) => {
-    db.all('SELECT * FROM gifts ORDER BY created_at DESC', [], (err, rows) => {
-        if (err) {
-            console.error('Erro ao buscar presentes:', err);
-            return res.status(500).json({ error: 'Erro ao buscar presentes', message: err.message });
-        }
-        res.json(rows);
-    });
-});
-
-// Rota para adicionar um presente
-app.post('/api/gifts', (req, res) => {
+// Adicionar presente
+app.post('/api/gifts', async (req, res) => {
     const { nome, presente, link } = req.body;
 
-    // Validação
     if (!nome || !presente || !link) {
-        return res.status(400).json({ 
-            error: 'Dados incompletos', 
-            message: 'Nome, presente e link são obrigatórios' 
-        });
+        return res.status(400).json({ error: 'Dados incompletos' });
     }
 
-    // Validar URL
     try {
-        new URL(link);
-    } catch (e) {
-        return res.status(400).json({ 
-            error: 'URL inválida', 
-            message: 'Por favor, forneça uma URL válida' 
-        });
+        // Inserir e retornar o item criado
+        const rows = await sql`
+            INSERT INTO gifts (nome, presente, link) 
+            VALUES (${nome}, ${presente}, ${link}) 
+            RETURNING *
+        `;
+        res.status(201).json(rows[0]);
+    } catch (err) {
+        console.error('Erro ao inserir presente:', err);
+        res.status(500).json({ error: 'Erro ao adicionar presente' });
     }
-
-    // Inserir no banco de dados
-    db.run(
-        'INSERT INTO gifts (nome, presente, link) VALUES (?, ?, ?)',
-        [nome.trim(), presente.trim(), link.trim()],
-        function(err) {
-            if (err) {
-                console.error('Erro ao inserir presente:', err);
-                return res.status(500).json({ 
-                    error: 'Erro ao adicionar presente', 
-                    message: err.message 
-                });
-            }
-
-            // Retornar o presente criado
-            db.get('SELECT * FROM gifts WHERE id = ?', [this.lastID], (err, row) => {
-                if (err) {
-                    console.error('Erro ao buscar presente criado:', err);
-                    return res.status(500).json({ 
-                        error: 'Presente adicionado mas erro ao retornar dados' 
-                    });
-                }
-                res.status(201).json(row);
-            });
-        }
-    );
 });
 
-// Rota para deletar um presente
-app.delete('/api/gifts/:id', (req, res) => {
+// Deletar presente
+app.delete('/api/gifts/:id', async (req, res) => {
     const { id } = req.params;
-
-    db.run('DELETE FROM gifts WHERE id = ?', [id], function(err) {
-        if (err) {
-            console.error('Erro ao deletar presente:', err);
-            return res.status(500).json({ 
-                error: 'Erro ao deletar presente', 
-                message: err.message 
-            });
-        }
-
-        if (this.changes === 0) {
-            return res.status(404).json({ 
-                error: 'Presente não encontrado' 
-            });
-        }
-
+    try {
+        await sql`DELETE FROM gifts WHERE id = ${id}`;
         res.json({ message: 'Presente deletado com sucesso' });
-    });
+    } catch (err) {
+        console.error('Erro ao deletar presente:', err);
+        res.status(500).json({ error: 'Erro ao deletar presente' });
+    }
 });
 
-// Exportar app para Vercel (serverless)
+// Exportar para Vercel
 module.exports = app;
 
-// Iniciar servidor apenas se não estiver rodando no Vercel
+// Iniciar servidor localmente
 if (require.main === module) {
     app.listen(PORT, () => {
-        console.log(`Servidor rodando em http://localhost:${PORT}`);
-    });
-
-    // Graceful shutdown
-    process.on('SIGINT', () => {
-        db.close((err) => {
-            if (err) {
-                console.error('Erro ao fechar banco de dados:', err);
-            } else {
-                console.log('Conexão com banco de dados fechada');
-            }
-            process.exit(0);
-        });
+        console.log(`Servidor rodando na porta ${PORT}`);
     });
 }
