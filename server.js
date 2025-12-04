@@ -7,22 +7,29 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Middleware - CORS configurado para aceitar requisições de qualquer origem
-// Em produção, você pode restringir para domínios específicos
 app.use(cors({
-    origin: '*', // Aceita requisições de qualquer origem (incluindo GitHub Pages)
+    origin: '*', 
     methods: ['GET', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
 app.use(express.static('.'));
 
+// ==================================================================
+// CORREÇÃO CRÍTICA PARA VERCEL:
+// A Vercel não permite criar arquivos na pasta raiz.
+// Precisamos usar a pasta temporária '/tmp' quando estivermos lá.
+// ==================================================================
+const dbPath = process.env.VERCEL 
+    ? path.join('/tmp', 'gifts.db') 
+    : path.join(__dirname, 'gifts.db');
+
 // Inicializar banco de dados
-const dbPath = path.join(__dirname, 'gifts.db');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Erro ao conectar ao banco de dados:', err);
     } else {
-        console.log('Conectado ao banco de dados SQLite');
+        console.log(`Conectado ao banco de dados SQLite em: ${dbPath}`);
         
         // Criar tabela se não existir
         db.run(`CREATE TABLE IF NOT EXISTS gifts (
@@ -106,7 +113,7 @@ app.post('/api/gifts', (req, res) => {
     );
 });
 
-// Rota para deletar um presente (opcional - para futuras funcionalidades)
+// Rota para deletar um presente
 app.delete('/api/gifts/:id', (req, res) => {
     const { id } = req.params;
 
@@ -136,7 +143,6 @@ module.exports = app;
 if (require.main === module) {
     app.listen(PORT, () => {
         console.log(`Servidor rodando em http://localhost:${PORT}`);
-        console.log(`Acesse http://localhost:${PORT} no seu navegador`);
     });
 
     // Graceful shutdown
