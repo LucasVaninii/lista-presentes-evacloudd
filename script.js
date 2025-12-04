@@ -5,14 +5,9 @@ const API_URL = "https://lista-presentes-evacloudd.vercel.app/api";
 // Chave para localStorage
 const STORAGE_KEY = 'evacloudd_gifts';
 
-// Detectar se estamos em produção (GitHub Pages) ou desenvolvimento
-// AQUI ESTÁ A CORREÇÃO: Não usamos mais "|| isProduction"
+// CONFIGURAÇÃO CORRIGIDA:
+// Se tiver API_URL, usa o backend. Se não tiver, usa localStorage.
 const USE_LOCALSTORAGE_ONLY = !API_URL;
-
-// Carregar presentes ao carregar a página
-document.addEventListener('DOMContentLoaded', () => {
-    loadGifts();
-// ... (o resto continua igual)
 
 // Carregar presentes ao carregar a página
 document.addEventListener('DOMContentLoaded', () => {
@@ -20,10 +15,10 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Configurar formulário
     const form = document.getElementById('giftForm');
-    form.addEventListener('submit', handleFormSubmit);
+    if (form) {
+        form.addEventListener('submit', handleFormSubmit);
+    }
 });
-
-// ... O RESTO DO CÓDIGO CONTINUA IGUAL DAQUI PARA BAIXO ...
 
 // ==================== FUNÇÕES DE ARMAZENAMENTO ====================
 
@@ -124,9 +119,9 @@ async function loadGifts() {
     const emptyState = document.getElementById('emptyState');
 
     try {
-        loading.style.display = 'block';
-        giftsList.innerHTML = '';
-        emptyState.style.display = 'none';
+        if (loading) loading.style.display = 'block';
+        if (giftsList) giftsList.innerHTML = '';
+        if (emptyState) emptyState.style.display = 'none';
 
         let gifts = [];
 
@@ -146,10 +141,10 @@ async function loadGifts() {
             gifts = getGiftsFromStorage();
         }
 
-        loading.style.display = 'none';
+        if (loading) loading.style.display = 'none';
 
-        if (gifts.length === 0) {
-            emptyState.style.display = 'block';
+        if (!gifts || gifts.length === 0) {
+            if (emptyState) emptyState.style.display = 'block';
             return;
         }
 
@@ -158,12 +153,12 @@ async function loadGifts() {
 
         gifts.forEach(gift => {
             const giftCard = createGiftCard(gift);
-            giftsList.appendChild(giftCard);
+            if (giftsList) giftsList.appendChild(giftCard);
         });
 
     } catch (error) {
         console.error('Erro ao carregar presentes:', error);
-        loading.style.display = 'none';
+        if (loading) loading.style.display = 'none';
         
         // Tentar carregar do localStorage como fallback
         try {
@@ -172,7 +167,7 @@ async function loadGifts() {
                 localGifts.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
                 localGifts.forEach(gift => {
                     const giftCard = createGiftCard(gift);
-                    giftsList.appendChild(giftCard);
+                    if (giftsList) giftsList.appendChild(giftCard);
                 });
                 return;
             }
@@ -180,7 +175,9 @@ async function loadGifts() {
             console.error('Erro ao carregar do localStorage:', e);
         }
         
-        giftsList.innerHTML = '<p class="error-message">Erro ao carregar presentes. Tente recarregar a página.</p>';
+        if (giftsList) {
+            giftsList.innerHTML = '<p class="error-message">Erro ao carregar presentes. Tente recarregar a página.</p>';
+        }
         showNotification('Erro ao carregar presentes', 'error');
     }
 }
@@ -216,10 +213,16 @@ function createGiftCard(gift) {
 async function handleFormSubmit(e) {
     e.preventDefault();
 
+    const nomeInput = document.getElementById('nome');
+    const presenteInput = document.getElementById('presente');
+    const linkInput = document.getElementById('link');
+
+    if (!nomeInput || !presenteInput || !linkInput) return;
+
     const formData = {
-        nome: document.getElementById('nome').value.trim(),
-        presente: document.getElementById('presente').value.trim(),
-        link: document.getElementById('link').value.trim()
+        nome: nomeInput.value.trim(),
+        presente: presenteInput.value.trim(),
+        link: linkInput.value.trim()
     };
 
     // Validação
@@ -296,40 +299,8 @@ function showNotification(message, type = 'success') {
 
 // Função para escapar HTML e prevenir XSS
 function escapeHtml(text) {
+    if (!text) return '';
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
-}
-
-// Exportar dados (funcionalidade extra para backup)
-function exportGifts() {
-    const gifts = getGiftsFromStorage();
-    const dataStr = JSON.stringify(gifts, null, 2);
-    const dataBlob = new Blob([dataStr], { type: 'application/json' });
-    const url = URL.createObjectURL(dataBlob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = 'presentes-evacloudd.json';
-    link.click();
-    URL.revokeObjectURL(url);
-}
-
-// Importar dados (funcionalidade extra para restaurar backup)
-function importGifts(file) {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        try {
-            const gifts = JSON.parse(e.target.result);
-            if (Array.isArray(gifts)) {
-                saveGiftsToStorage(gifts);
-                showNotification('Presentes importados com sucesso!');
-                loadGifts();
-            } else {
-                showNotification('Arquivo inválido', 'error');
-            }
-        } catch (error) {
-            showNotification('Erro ao importar arquivo', 'error');
-        }
-    };
-    reader.readAsText(file);
 }
