@@ -1,7 +1,7 @@
 // Configuração: API URL (deixe vazio para usar apenas localStorage)
 // Para usar com backend, defina a URL da sua API aqui
-// Exemplo: const API_URL = 'https://seu-backend.vercel.app/api';
-const API_URL = '';
+// Exemplo: const API_URL = https://lista-presentes-evacloudd.vercel.app/api;
+const API_URL = https://lista-presentes-evacloudd.vercel.app/api;
 
 // Chave para localStorage
 const STORAGE_KEY = 'evacloudd_gifts';
