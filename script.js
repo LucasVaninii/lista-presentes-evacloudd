@@ -1,17 +1,18 @@
 // Configuração: API URL (deixe vazio para usar apenas localStorage)
 // Para usar com backend, defina a URL da sua API aqui
-// ⚠️ IMPORTANTE: Certifique-se que esta URL é a sua URL da Vercel correta
 const API_URL = "https://lista-presentes-evacloudd.vercel.app/api";
 
 // Chave para localStorage
 const STORAGE_KEY = 'evacloudd_gifts';
 
 // Detectar se estamos em produção (GitHub Pages) ou desenvolvimento
-const isProduction = window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1';
+// AQUI ESTÁ A CORREÇÃO: Não usamos mais "|| isProduction"
+const USE_LOCALSTORAGE_ONLY = !API_URL;
 
-// === A CORREÇÃO ESTÁ NA LINHA ABAIXO ===
-// Removemos a parte "|| isProduction" para obrigar o site a usar a API online
-const USE_LOCALSTORAGE_ONLY = !API_URL; 
+// Carregar presentes ao carregar a página
+document.addEventListener('DOMContentLoaded', () => {
+    loadGifts();
+// ... (o resto continua igual)
 
 // Carregar presentes ao carregar a página
 document.addEventListener('DOMContentLoaded', () => {
