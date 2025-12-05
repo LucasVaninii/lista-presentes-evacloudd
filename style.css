@@ -5,12 +5,12 @@
 }
 
 :root {
-    --primary-color: #6366f1;
-    --primary-dark: #4f46e5;
-    --secondary-color: #8b5cf6;
+    --primary-color: #0578be;
+    --primary-dark: #1572fd;
+    --secondary-color: #04bcfc;
     --background: #f8fafc;
     --surface: #ffffff;
-    --text-primary: #1e293b;
+    --text-primary: #000000;
     --text-secondary: #64748b;
     --border-color: #e2e8f0;
     --success-color: #10b981;
@@ -20,7 +20,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: linear-gradient(135deg, #04bcfc 0%, #0578be 100%);
     color: var(--text-primary);
     min-height: 100vh;
     padding: 20px;
