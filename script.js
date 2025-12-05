@@ -129,6 +129,8 @@ async function loadGifts() {
 function createGiftCard(gift) {
     const card = document.createElement('div');
     card.className = 'gift-card';
+    
+    // Formatar data
     const date = new Date(gift.created_at).toLocaleDateString('pt-BR');
 
     card.innerHTML = `
@@ -138,6 +140,9 @@ function createGiftCard(gift) {
                 <div class="sugested-by">Sugerido por: ${escapeHtml(gift.nome)}</div>
                 <div class="sugested-by" style="font-size: 0.75rem; margin-top:5px;">${date}</div>
             </div>
+            <button onclick="deleteGift('${gift.id}')" class="btn-delete" title="Apagar Sugestão">
+                🗑️
+            </button>
         </div>
         <a href="${escapeHtml(gift.link)}" target="_blank" class="gift-link">Ver Presente →</a>
     `;
@@ -186,4 +191,40 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// ==================== FUNÇÃO DE DELETAR ====================
+
+// Tornar a função global para o HTML conseguir acessar
+window.deleteGift = async function(id) {
+    // Pergunta de segurança
+    if (!confirm('Tem certeza que deseja apagar esta sugestão?')) {
+        return;
+    }
+
+    try {
+        // Se estiver usando API (Neon/Vercel)
+        if (!USE_LOCALSTORAGE_ONLY) {
+            const response = await fetch(`${API_URL}/gifts/${id}`, {
+                method: 'DELETE'
+            });
+
+            if (!response.ok) {
+                throw new Error('Erro ao deletar no servidor');
+            }
+        } else {
+            // Se estiver usando apenas LocalStorage (Backup)
+            const gifts = getGiftsFromStorage();
+            const updatedGifts = gifts.filter(gift => gift.id != id); // Remove o item
+            saveGiftsToStorage(updatedGifts);
+        }
+
+        // Atualiza a tela
+        loadGifts();
+        alert('Sugestão apagada com sucesso!');
+
+    } catch (error) {
+        console.error('Erro ao deletar:', error);
+        alert('Erro ao tentar apagar. Tente novamente.');
+    }
 }
