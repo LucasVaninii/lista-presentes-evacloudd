@@ -64,18 +64,34 @@ app.get('/api/gifts', async (req, res) => {
 });
 
 // Adicionar presente
+// Rota para adicionar um presente
 app.post('/api/gifts', async (req, res) => {
     const { nome, presente, link } = req.body;
 
-    if (!nome || !presente || !link) {
-        return res.status(400).json({ error: 'Dados incompletos' });
+    // Validação: Removemos o link da obrigatoriedade
+    if (!nome || !presente) {
+        return res.status(400).json({ 
+            error: 'Dados incompletos',
+            message: 'Nome e presente são obrigatórios'
+        });
+    }
+
+    // Garante que o link seja uma string (vazia se não informado) para o banco não reclamar
+    const safeLink = link || "";
+
+    // Só valida URL se o usuário digitou algo
+    if (safeLink) {
+        try {
+            new URL(safeLink);
+        } catch (e) {
+            return res.status(400).json({ error: 'URL inválida' });
+        }
     }
 
     try {
-        // Inserir e retornar o item criado
         const rows = await sql`
             INSERT INTO gifts (nome, presente, link) 
-            VALUES (${nome}, ${presente}, ${link}) 
+            VALUES (${nome}, ${presente}, ${safeLink}) 
             RETURNING *
         `;
         res.status(201).json(rows[0]);
@@ -84,7 +100,6 @@ app.post('/api/gifts', async (req, res) => {
         res.status(500).json({ error: 'Erro ao adicionar presente' });
     }
 });
-
 // Deletar presente
 app.delete('/api/gifts/:id', async (req, res) => {
     const { id } = req.params;

@@ -129,9 +129,12 @@ async function loadGifts() {
 function createGiftCard(gift) {
     const card = document.createElement('div');
     card.className = 'gift-card';
-    
-    // Formatar data
     const date = new Date(gift.created_at).toLocaleDateString('pt-BR');
+
+    // Só cria o botão se o link existir e não for vazio
+    const linkButton = gift.link && gift.link !== "" 
+        ? `<a href="${escapeHtml(gift.link)}" target="_blank" class="gift-link">Ver Presente →</a>` 
+        : '';
 
     card.innerHTML = `
         <div class="gift-card-header">
@@ -144,7 +147,7 @@ function createGiftCard(gift) {
                 🗑️
             </button>
         </div>
-        <a href="${escapeHtml(gift.link)}" target="_blank" class="gift-link">Ver Presente →</a>
+        ${linkButton}
     `;
     return card;
 }
@@ -154,10 +157,12 @@ async function handleFormSubmit(e) {
     
     const nome = document.getElementById('nome').value.trim();
     const presente = document.getElementById('presente').value.trim();
-    const link = document.getElementById('link').value.trim();
+    // Se não tiver link, usa string vazia
+    const link = document.getElementById('link').value.trim() || "";
 
-    if (!nome || !presente || !link) {
-        alert('Preencha todos os campos!');
+    // Validação: Agora só Nome e Presente são obrigatórios
+    if (!nome || !presente) {
+        alert('Por favor, preencha o Nome e o Presente!');
         return;
     }
 
@@ -173,13 +178,11 @@ async function handleFormSubmit(e) {
     if (!result) {
         result = addGiftToStorage(giftData);
     } else {
-        // Se salvou na API, atualiza o cache local e recarrega
         loadGifts(); 
     }
 
     document.getElementById('giftForm').reset();
     
-    // Pequeno delay para garantir que o banco processou
     setTimeout(() => {
         loadGifts();
         alert('Presente adicionado com sucesso! 🎉');
